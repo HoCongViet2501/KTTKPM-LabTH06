@@ -1,14 +1,14 @@
 package com.se.springboot_activemq.security.jwt;
 
-
-import com.se.springboot_activemq.security.UserDetailServiceImpl;
 import io.jsonwebtoken.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -17,57 +17,66 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Base64;
 import java.util.Date;
 
+
 @Component
 @RequiredArgsConstructor
 public class JwtProvider {
     @Qualifier("userDetailsServiceImpl")
     @Lazy
-    private final UserDetailServiceImpl userDetailService;
+    private final UserDetailsService userDetailsService;
     
-    private String SECRET_KEY = "secret";
     
-    private static final long EXPIRATION_TIME = 86400000;
+    private String authorizationHeader = "Authorization";
     
-    private static final String HEADER = "Authorization";
+    private String secretKey = "secret";
+    
+    private long validityInMilliseconds = 3600000;
+    
     
     @PostConstruct
     protected void init() {
-        SECRET_KEY = Base64.getEncoder().encodeToString(SECRET_KEY.getBytes());
+        secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
     }
+    
     
     public String createToken(String username, String role) {
         Claims claims = Jwts.claims().setSubject(username);
         claims.put("role", role);
-        Date date = new Date(new Date().getTime() + EXPIRATION_TIME * 1000);
+        Date now = new Date();
+        Date validity = new Date(now.getTime() + validityInMilliseconds * 1000);
+        
         return Jwts.builder()
                 .setClaims(claims)
-                .setExpiration(date)
-                .signWith(io.jsonwebtoken.SignatureAlgorithm.HS256, SECRET_KEY)
+                .setIssuedAt(now)
+                .setExpiration(validity)
+                .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
     
     public boolean validateToken(String token) {
+        
         try {
-            Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            throw new JwtException("JWT token is expired or invalid");
+            Jws<Claims> claimsJws = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
+            
+            return !claimsJws.getBody().getExpiration().before(new Date());
+        } catch (JwtException | IllegalArgumentException exception) {
+            throw new JwtException("JWT token is expired or invalid", exception);
         }
     }
     
-    public Authentication authentication(String token) {
-        UserDetails userDetails = this.userDetailService.loadUserByUsername(getUsername(token));
+    public Authentication getAuthentication(String token) {
+        UserDetails userDetails = this.userDetailsService.loadUserByUsername(getUsernameByToken(token));
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
     
-    private String getUsername(String token) {
-        return Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody().getSubject();
+    public String getUsernameByToken(String token) {
+        return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody().getSubject();
     }
     
-    public String resolveToken(HttpServletRequest httpServletRequest) {
-        String header = httpServletRequest.getHeader(HEADER);
-        if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
-            return header.substring(7);
+    public String resolveToken(HttpServletRequest request) {
+        String headerAuth = request.getHeader(authorizationHeader);
+        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
+            return headerAuth.substring(7);
         }
         return null;
     }

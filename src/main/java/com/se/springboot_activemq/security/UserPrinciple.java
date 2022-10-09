@@ -16,28 +16,27 @@ import java.util.Set;
 @NoArgsConstructor
 @Builder
 public class UserPrinciple implements UserDetails {
-    
     private Long id;
     
     private String username;
     
     private String password;
     
-    private Collection<? extends GrantedAuthority> authorities;
+    private Collection<? extends GrantedAuthority> grantedAuthorities;
     
-    public static UserPrinciple build(User user) {
-        Set<SimpleGrantedAuthority> grantedAuthorities = Collections.singleton(new SimpleGrantedAuthority(user.getRole().name()));
+    public static UserPrinciple createUser(User user) {
+        Set<SimpleGrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority(user.getRole().name()));
         return UserPrinciple.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .password(user.getPassword())
-                .authorities(grantedAuthorities)
+                .grantedAuthorities(authorities)
                 .build();
     }
     
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
+        return grantedAuthorities;
     }
     
     @Override

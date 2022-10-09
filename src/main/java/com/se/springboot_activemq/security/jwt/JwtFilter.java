@@ -19,24 +19,28 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class JwtFilter extends GenericFilterBean {
-    
-    @Autowired
-    private JwtProvider jwtProvider;
-    
-    @Override
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
-        String token = jwtProvider.resolveToken((HttpServletRequest) servletRequest);
-        try {
-            if (token != null && jwtProvider.validateToken(token)) {
-                Authentication authentication = jwtProvider.authentication(token);
-                if (authentication != null) {
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
-            }
-        } catch (JwtException e) {
-            SecurityContextHolder.clearContext();
-            ((HttpServletResponse) servletResponse).sendError(403, e.getMessage());
-            throw new JwtException("JWT token is expired or invalid");
-        }
-    }
+
+	@Autowired
+	private final JwtProvider jwtProvider;
+
+	@Override
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+		String token = jwtProvider.resolveToken((HttpServletRequest) request);
+
+		try {
+			if (token != null && jwtProvider.validateToken(token)) {
+				Authentication authentication = jwtProvider.getAuthentication(token);
+
+				if (authentication != null) {
+					SecurityContextHolder.getContext().setAuthentication(authentication);
+				}
+			}
+		} catch (JwtException e) {
+			SecurityContextHolder.clearContext();
+			((HttpServletResponse) response).sendError(403, e.getMessage());
+			throw new JwtException("JWT token is expired or invalid");
+		}
+
+		filterChain.doFilter(request, response);
+	}
 }

@@ -1,0 +1,23 @@
+version: '2'
+services:
+  app:
+    image: 'activemq-postgres:latest'
+    build:
+      context: .
+    container_name: activemq-postgres
+    depends_on:
+      - db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/activemq
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=020501
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+  db:
+    image: 'postgres:latest'
+    container_name: db
+    environment:
+      - POSTGRES_PASSWORD=020501
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=activemq
+    ports:
+      - '5432:5432'

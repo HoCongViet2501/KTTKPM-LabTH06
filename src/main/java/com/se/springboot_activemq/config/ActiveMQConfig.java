@@ -18,20 +18,19 @@ public class ActiveMQConfig {
     @Value("${spring.activemq.broker-url}")
     private String brokerURL;
     
-    @Bean
-    public DefaultJmsListenerContainerFactory jmsListenerContainerFactory(ConnectionFactory connectionFactory) {
-        DefaultJmsListenerContainerFactory containerFactory = new DefaultJmsListenerContainerFactory();
-        containerFactory.setConnectionFactory(connectionFactory);
-        containerFactory.setConcurrency("5-10");
-        containerFactory.setPubSubDomain(true);
-        return containerFactory;
-    }
+//    @Bean
+//    public DefaultJmsListenerContainerFactory jmsListenerContainerFactory(ConnectionFactory connectionFactory) {
+//        DefaultJmsListenerContainerFactory containerFactory = new DefaultJmsListenerContainerFactory();
+//        containerFactory.setConnectionFactory(connectionFactory);
+//        containerFactory.setConcurrency("5-10");
+//        containerFactory.setPubSubDomain(true);
+//        return containerFactory;
+//    }
     
     @Bean
     public ConnectionFactory connectionFactory() {
         ActiveMQConnectionFactory activeMQConnectionFactory = new ActiveMQConnectionFactory();
         activeMQConnectionFactory.setBrokerURL(brokerURL);
-        activeMQConnectionFactory.setTrustedPackages(List.of("com.se.springboot_activemq"));
         return activeMQConnectionFactory;
     }
     
